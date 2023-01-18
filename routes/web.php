@@ -1,0 +1,97 @@
+<?php
+
+use Ayeo\Barcode\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+/*
+|--------------------------------------------------------------------------
+| Application Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register all of the routes for an application.
+| It is a breeze. Simply tell Lumen the URIs it should respond to
+| and give it the Closure to call when that URI is requested.
+|
+*/
+
+$router->get('/', 'LoginController@index');
+$router->get('/logout', 'LoginController@logout');
+$router->get('/reset', 'LoginController@reset');
+$router->get('/register', 'LoginController@register');
+$router->get('/creacion_npe', 'NpeController@index');
+$router->get('/restablecer_contrasenia', 'LoginController@restablecer_contrasenia');
+$router->get('/form_npe', 'NpeController@form_npe');
+$router->get('/pago', 'PagoController@index');
+$router->get('/download_comprobante_pago', 'PagoController@download_comprobante_pago');
+$router->get('/descargar-adjunto/{name}', 'LoginController@descargarAdjunto');
+$router->get('phpmyinfo', function () { phpinfo(); });
+$router->post('/register_store', 'LoginController@register_store');
+$router->post('/login', 'LoginController@login');
+$router->post('/recover', 'LoginController@recover');
+$router->post('/new_password', 'LoginController@new_password');
+$router->post('/validate_nit', 'NpeController@validate_nit');
+$router->post('/pago-mandamiento', 'NpeController@desplagarModalPago');
+
+
+$router->group(["prefix" => "/npe"], function () use ($router) {
+
+
+    $router->get('/get_services_colector', 'NpeController@get_services_colector');
+    $router->post('/get_municipios_departamento', 'NpeController@get_municipios_departamento');
+    $router->post('/create_mandamiento', 'NpeController@create_mandamiento');
+    $router->get('/consultar_mandamiento', 'NpeController@consultarMandIndv');
+    $router->post('/validate_nit', 'NpeController@validate_nit');
+});
+
+
+$router->get('/print_pdf/{id}', function ($id) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION["acceso"] = time();
+
+    return response()->download(storage_path() . "/app/mandamientos/mandamiento_$id.pdf");
+});
+
+
+
+/************* Rutas Auth Passport para obtener token ***************/
+
+// $router->post('/register', 'UserController@register');
+
+
+$router->group(["prefix" => "/v1", "middleware" => "auth"], function () use ($router) {
+
+    $router->group(["prefix" => "/minsalpagos-api"], function () use ($router) {
+
+        /**
+         * Ruta para entregar datos de catalogos
+         */
+        $router->post("/catalogos", "CatalogoController@catalogos");
+
+        /**
+         * Ruta para entregar datos de catalogos
+         */
+        $router->get("/municipios/{departamento}", "CatalogoController@municipios");
+
+        /**
+         * Ruta para entregar datos de catalogos
+         */
+        $router->post("/lista-servicios", "CatalogoController@listaServicios");
+
+
+        /**
+         * Ruta para generar mandamiento de pago
+         */
+        $router->post("/order", "MandamientoController@generarMandamientoPago");
+
+
+        /**
+         * Ruta para consultar estado de pago de mandamiento
+         */
+        $router->post("/order/estado", "MandamientoController@consultaEstadoMandamiento");
+
+    });
+});
